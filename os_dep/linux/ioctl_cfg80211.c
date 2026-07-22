@@ -4868,9 +4868,9 @@ void rtw_cfg80211_indicate_sta_assoc(_adapter *padapter, u8 *pmgmt_frame, uint f
 #if !defined(RTW_USE_CFG80211_STA_EVENT) && !defined(COMPAT_KERNEL_RELEASE)
 	s32 freq;
 	int channel;
-	struct wireless_dev *pwdev = padapter->rtw_wdev;
 	struct link_mlme_ext_priv *pmlmeext = &(padapter_link->mlmeextpriv);
 #endif
+	struct wireless_dev *pwdev = padapter->rtw_wdev;
 	struct net_device *ndev = padapter->pnetdev;
 
 	RTW_INFO(FUNC_ADPT_FMT"\n", FUNC_ADPT_ARG(padapter));
@@ -4888,7 +4888,11 @@ void rtw_cfg80211_indicate_sta_assoc(_adapter *padapter, u8 *pmgmt_frame, uint f
 		sinfo.filled = STATION_INFO_ASSOC_REQ_IES;
 		sinfo.assoc_req_ies = pmgmt_frame + WLAN_HDR_A3_LEN + ie_offset;
 		sinfo.assoc_req_ies_len = frame_len - WLAN_HDR_A3_LEN - ie_offset;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0))
+		cfg80211_new_sta(pwdev, get_addr2_ptr(pmgmt_frame), &sinfo, GFP_ATOMIC);
+#else
 		cfg80211_new_sta(ndev, get_addr2_ptr(pmgmt_frame), &sinfo, GFP_ATOMIC);
+#endif
 	}
 #else /* defined(RTW_USE_CFG80211_STA_EVENT) */
 	channel = pmlmeext->chandef.chan;
@@ -4929,14 +4933,18 @@ void rtw_cfg80211_indicate_sta_disassoc(_adapter *padapter, const u8 *da, unsign
 	u8 mgmt_buf[128] = {0};
 	struct mlme_ext_priv	*pmlmeext = &(padapter->mlmeextpriv);
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
+	#endif
 	struct wireless_dev *wdev = padapter->rtw_wdev;
-#endif
 	struct net_device *ndev = padapter->pnetdev;
 
 	RTW_INFO(FUNC_ADPT_FMT"\n", FUNC_ADPT_ARG(padapter));
 
 #if defined(RTW_USE_CFG80211_STA_EVENT) || defined(COMPAT_KERNEL_RELEASE)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0))
+	cfg80211_del_sta(wdev, da, GFP_ATOMIC);
+#else
 	cfg80211_del_sta(ndev, da, GFP_ATOMIC);
+#endif
 #else /* defined(RTW_USE_CFG80211_STA_EVENT) */
 	channel = padapter_link->mlmeext.chandef.chan;
 	freq = rtw_ch2freq(channel);
@@ -6184,7 +6192,11 @@ release_plink_ctl:
 
 			/* indicate new sta */
 			_rtw_memset(&sinfo, 0, sizeof(sinfo));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(7, 1, 0))
+			cfg80211_new_sta(wdev, mac, &sinfo, GFP_ATOMIC);
+#else
 			cfg80211_new_sta(ndev, mac, &sinfo, GFP_ATOMIC);
+#endif
 		}
 		goto exit;
 	}
