@@ -7451,7 +7451,16 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	enum nl80211_channel_type channel_type,
 #endif
-	unsigned int duration, u64 *cookie)
+	unsigned int duration,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
+	u64 *cookie
+#else
+	u64 cookie
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0))
+	, const u8 *rx_addr
+#endif
+)
 {
 	s32 err = 0;
 	u8 remain_ch = (u8) ieee80211_frequency_to_channel(channel->center_freq);
@@ -7505,11 +7514,19 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 #endif
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
 	*cookie = ATOMIC_INC_RETURN(&pcfg80211_rochinfo->ro_ch_cookie_gen);
+#endif
 
 	RTW_INFO(FUNC_ADPT_FMT"%s ch:%u duration:%d, cookie:0x%llx\n"
 		, FUNC_ADPT_ARG(padapter), wdev == wiphy_to_pd_wdev(wiphy) ? " PD" : ""
-		, remain_ch, duration, *cookie);
+		, remain_ch, duration
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
+		, *cookie
+#else
+		, cookie
+#endif
+	);
 
 	if (rtw_chset_search_ch(adapter_to_chset(padapter), remain_ch) < 0) {
 		RTW_WARN(FUNC_ADPT_FMT" invalid ch:%u\n", FUNC_ADPT_ARG(padapter), remain_ch);
@@ -7537,8 +7554,13 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	else
 		bkop_parm.off_ch_ext_dur = pregistrypriv->roch_extend_dur * 6;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
 	rtw_phl_remain_on_ch_cmd(padapter, *cookie, wdev,
 		channel, channel_type, duration, &bkop_parm, is_p2p);
+#else
+	rtw_phl_remain_on_ch_cmd(padapter, cookie, wdev,
+		channel, channel_type, duration, &bkop_parm, is_p2p);
+#endif
 
 	return 0;
 }
@@ -7555,7 +7577,16 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0))
 	enum nl80211_channel_type channel_type,
 #endif
-	unsigned int duration, u64 *cookie)
+	unsigned int duration,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
+	u64 *cookie
+#else
+	u64 cookie
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(7, 2, 0))
+	, const u8 *rx_addr
+#endif
+)
 {
 	s32 err = 0;
 	u8 remain_ch = (u8) ieee80211_frequency_to_channel(channel->center_freq);
@@ -7597,11 +7628,19 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	is_p2p_find = (duration < (pwdinfo->ext_listen_interval)) ? _TRUE : _FALSE;
 #endif
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
 	*cookie = ATOMIC_INC_RETURN(&pcfg80211_wdinfo->ro_ch_cookie_gen);
+#endif
 
 	RTW_INFO(FUNC_ADPT_FMT"%s ch:%u duration:%d, cookie:0x%llx\n"
 		, FUNC_ADPT_ARG(padapter), wdev == wiphy_to_pd_wdev(wiphy) ? " PD" : ""
-		, remain_ch, duration, *cookie);
+		, remain_ch, duration
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
+		, *cookie
+#else
+		, cookie
+#endif
+	);
 
 	if (rtw_chset_search_ch(adapter_to_chset(padapter), remain_ch) < 0) {
 		RTW_WARN(FUNC_ADPT_FMT" invalid ch:%u\n", FUNC_ADPT_ARG(padapter), remain_ch);
@@ -7673,7 +7712,11 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 
 	rtw_cfg80211_set_is_roch(padapter, _TRUE);
 	pcfg80211_wdinfo->ro_ch_wdev = wdev;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
 	pcfg80211_wdinfo->remain_on_ch_cookie = *cookie;
+#else
+	pcfg80211_wdinfo->remain_on_ch_cookie = cookie;
+#endif
 	pcfg80211_wdinfo->duration = duration;
 	rtw_cfg80211_set_last_ro_ch_time(padapter);
 	_rtw_memcpy(&pcfg80211_wdinfo->remain_on_ch_channel, channel, sizeof(struct ieee80211_channel));
@@ -7682,10 +7725,17 @@ static s32 cfg80211_rtw_remain_on_channel(struct wiphy *wiphy,
 	#endif
 	pcfg80211_wdinfo->restore_channel = rtw_get_oper_ch(padapter);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0))
 	p2p_roch_cmd(padapter, *cookie, wdev, channel, pcfg80211_wdinfo->remain_on_ch_type,
 		duration, RTW_CMDF_WAIT_ACK);
 
 	rtw_cfg80211_ready_on_channel(wdev, *cookie, channel, channel_type, duration, GFP_KERNEL);
+#else
+	p2p_roch_cmd(padapter, cookie, wdev, channel, pcfg80211_wdinfo->remain_on_ch_type,
+		duration, RTW_CMDF_WAIT_ACK);
+
+	rtw_cfg80211_ready_on_channel(wdev, cookie, channel, channel_type, duration, GFP_KERNEL);
+#endif
 exit:
 	return err;
 }
