@@ -514,6 +514,7 @@ static void rtw_ethtool_get_drvinfo(struct net_device *dev, struct ethtool_drvin
 	_adapter *padapter = NULL;
 
 	wdev = dev->ieee80211_ptr;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
 	if (wdev) {
 		strscpy(info->driver, wiphy_dev(wdev->wiphy)->driver->name,
 			sizeof(info->driver));
@@ -522,6 +523,17 @@ static void rtw_ethtool_get_drvinfo(struct net_device *dev, struct ethtool_drvin
 	}
 
 	strscpy(info->version, DRIVERVERSION, sizeof(info->version));
+#else
+	if (wdev) {
+		strlcpy(info->driver, wiphy_dev(wdev->wiphy)->driver->name,
+			sizeof(info->driver));
+	} else {
+		strlcpy(info->driver, "N/A", sizeof(info->driver));
+	}
+
+	strlcpy(info->version, DRIVERVERSION, sizeof(info->version));
+#endif
+
 
 	padapter = (_adapter *)rtw_netdev_priv(dev);
 
