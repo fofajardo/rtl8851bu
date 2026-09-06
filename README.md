@@ -12,7 +12,7 @@ This repository hosts a modified and updated version of the Realtek RTL8851BU Wi
 - **WPS** - PIN and PBC Methods
 
 ## Supported Platforms
-- **Linux Kernel Versions:** 3.13 to 7.1
+- **Linux Kernel Versions:** 3.13 to 7.2
 - **CPU Architectures:** x86, ARM, MIPS
 
 ## Installation
